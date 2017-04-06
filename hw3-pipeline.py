@@ -182,7 +182,7 @@ def new_feats(data):
 
 # In[9]:
 
-# Log features
+
 def log_feats(data):
     for c in data.select_dtypes(exclude=['object']).columns:
         data[c + '__log'] = data[c].apply(lambda x: np.log(abs(x) + 0.001))
@@ -190,9 +190,9 @@ def log_feats(data):
     return data
 
 
-# In[10]:
+# ### Mean of continuous columns for each category of the categorical columns
 
-# Mean of continuous columns for each category of the categorical columns
+# In[10]:
 
 def fit_mean_cont_per_cat_group(df):
     categorical_cols = df.select_dtypes(include=['object']).columns
@@ -492,7 +492,7 @@ pipe = Pipeline([
 ])
 
 
-# In[ ]:
+# In[35]:
 
 from sklearn.preprocessing import FunctionTransformer
 
@@ -509,20 +509,20 @@ test_score = stacking.score(x_test, y_test)
 test_preds = stacking.predict_proba(x_test)
 
 
-# In[ ]:
+# In[36]:
 
 final_score = roc_auc_score(y_test, test_preds[:,1])
 print(final_score)
 
 
-# In[ ]:
+# In[37]:
 
 assert final_score > 0.79
 
 
 # # Holdout Predictions
 
-# In[115]:
+# In[38]:
 
 pipe = Pipeline([
     ("variance", VarianceThreshold()),
@@ -549,12 +549,12 @@ test_preds = stacking.predict_proba(x_test)
 print(train_score, test_score)
 
 
-# In[116]:
+# In[39]:
 
 preds = stacking.fit(data_dummies, subscribed).predict_proba(holdout_dummies)
 
 
-# In[117]:
+# In[40]:
 
 preds_subscribed = pd.DataFrame(preds[:,1], columns=['subscribed'])
 submission = pd.concat([holdout_ids, preds_subscribed], axis=1)
