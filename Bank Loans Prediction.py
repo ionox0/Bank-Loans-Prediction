@@ -90,6 +90,22 @@ frames = [categorical_df, subscribed]
 categ_and_target = pd.concat(frames,axis=1)
 
 
+# ### First we make a pairplot of all the features, and their relationships to one another:
+
+# <img src="pairplot1.png" width="100%" height="100%" align="left" />
+# 
+# <img src="pairplot2.png" width="100%" height="100%" align="left" />
+
+# From this plot, we can observe some of the variables that may provide helpful splits between the successful and unsuccessful subscription attempts:
+# 
+# - `cons_price_idx` - Consumer price index - monthly indicator (numeric)  
+# 
+# - `age` - Age of the customer
+# 
+# - `campaign` - The number of contacts performed during this campaign and for this client (numeric, includes last contact)
+# 
+# - `duration` - This feature represents the duration of the current call for attempting to get the customer to subscribe. Because it proved to be such a good predictor of the final success rate, but it is not a variable that can be used to predict for future potential customers, we removed this feature in order to create a more useful and generalizable model. 
+
 # ## Creating new features
 # #### Boolean variable indicating whether participant falls into subcategories that exhibit higher proportion of successful loan subscriptions:
 
