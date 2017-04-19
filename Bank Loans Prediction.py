@@ -1,17 +1,13 @@
 
 # coding: utf-8
 
-# # Submission Information:
+# # Loans Prediction - Predicting successful Loan Subscriptions
 # 
-# ### Team Member 1:
-# * UNI:  icj2103
-# * Name: Ian Johnson
+# ### Ian Johnson and Daniel First
 # 
-# ### Team Member 2 [optional]:
-# * UNI:  df5890
-# * Name: Daniel First
+# A banking institution ran a direct marketing campaign based on phone calls. Often, more than one contact to the same client was required, in order to assess if the product (bank term deposit) would be subscribed or not. Your task is to predict whether someone will subscribe to the term deposit or not based on the given information.
 
-# # Step0 - Import Libraries, Load Data [0 points]
+# # Step 0 - Import Libraries, Load Data
 # 
 # This is the basic step where you can load the data and create train and test sets for internal validation as per your convinience.
 
@@ -51,7 +47,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 
 
-# In[3]:
+# In[2]:
 
 # Display progress logs on stdout
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
@@ -76,11 +72,16 @@ data = data.drop(["subscribed", "duration", "credit_default"], axis=1)
 holdout = holdout.drop(["ID", "duration", "credit_default"], axis=1)
 
 
-# # Step1 - Exploration and Preparation [10 points]
+# In[3]:
+
+data.head()
+
+
+# # Step 1 - Exploration and Preparation
 # 
 # In this step, we expect you to look into the data and try to understand it before modeling. This understanding may lead to some basic data preparation steps which are common across the two model sets required.
 
-# In[4]:
+# In[88]:
 
 categorical_df=data.select_dtypes(include=['object'])
 categorical_variables=categorical_df.columns
@@ -89,7 +90,10 @@ frames = [categorical_df, subscribed]
 categ_and_target = pd.concat(frames,axis=1)
 
 
-# In[5]:
+# ## Creating new features
+# #### Boolean variable indicating whether participant falls into subcategories that exhibit higher proportion of successful loan subscriptions:
+
+# In[89]:
 
 print("Jobs:")
 dict_percentage_job={}
@@ -123,7 +127,7 @@ for each_edu in edu_categories:
 print(dict_percentage_edu)
 
 
-# In[6]:
+# In[90]:
 
 def month_function(month):
     if month=="dec" or month=="mar" or month=="oct" or month=="sep":
@@ -145,13 +149,13 @@ def education_function(y):
         return 1
 
 
-# In[7]:
+# In[91]:
 
 def get_counts(x,dict):
     return dict[x]
 
 
-# In[8]:
+# In[92]:
 
 def new_feats(data):
     data_withbool=data
@@ -180,9 +184,11 @@ def new_feats(data):
     return data_withbool_withcounts
 
 
-# In[9]:
+# #### Features consisting of the logs of each of the continuous columns from the datasest:
 
+# In[93]:
 
+# Log features
 def log_feats(data):
     for c in data.select_dtypes(exclude=['object']).columns:
         data[c + '__log'] = data[c].apply(lambda x: np.log(abs(x) + 0.001))
@@ -190,9 +196,9 @@ def log_feats(data):
     return data
 
 
-# ### Mean of continuous columns for each category of the categorical columns
+# #### Features consisting of the mean of each of the continuous columns, for each subcategory of the categorical columns:
 
-# In[10]:
+# In[94]:
 
 def fit_mean_cont_per_cat_group(df):
     categorical_cols = df.select_dtypes(include=['object']).columns
@@ -229,9 +235,10 @@ def transform_mean_cont_per_cat_group(df, means):
     return df
 
 
-# In[11]:
+# ### Apply new feature creation functions to the data and holdout data sets
 
-# Use mean_cat_con features
+# In[95]:
+
 print(data.shape)
 print(holdout.shape)
 means = fit_mean_cont_per_cat_group(data)
@@ -241,42 +248,41 @@ print(data_new_feats_1.shape)
 print(holdout_new_feats_1.shape)
 
 
-# In[12]:
+# In[96]:
 
-# Use Daniel's features
 data_new_feats_2 = new_feats(data)
 holdout_new_feats_2 = new_feats(holdout)
 print(data_new_feats_2.shape)
 print(holdout_new_feats_2.shape)
 
 
-# In[13]:
+# In[97]:
 
-# Use the log features
 data_new_feats_3 = log_feats(data_new_feats_2)
 holdout_new_feats_3 = log_feats(holdout_new_feats_2)
 print(data_new_feats_3.shape)
 print(holdout_new_feats_3.shape)
 
 
-# In[14]:
+# In[98]:
 
-# Create dummies
 data_dummies = pd.get_dummies(data_new_feats_3)
 holdout_dummies = pd.get_dummies(holdout_new_feats_3)
 print(data_dummies.shape)
 print(holdout_dummies.shape)
 
 
-# In[15]:
+# ### Train test split of our training data:
+
+# In[99]:
 
 x_train, x_test, y_train, y_test = train_test_split(data_dummies, subscribed, random_state=42)# stratify=subscribed, random_state=42)
 x_train.shape
 
 
-# # Utility GridSearch function
+# ### Utility grid search function to assess subsequent models:
 
-# In[16]:
+# In[100]:
 
 def grid_search_metrics(pipe, param_grid):
     grid = GridSearchCV(pipe, param_grid=param_grid, scoring='roc_auc')
@@ -288,20 +294,19 @@ def grid_search_metrics(pipe, param_grid):
     print("Overfitting amount: {}".format(grid.best_score_ - score))
 
 
-# # Step2 - ModelSet1 [35 points]
+# # Step 2 - Model Set 1
 # 
-# In this step, we expect you to perform the following steps relevant to the models you choose for set1:
+# In this step, we perform the following steps relevant to exploring our initial options for modeling:
 # 
-# * feature engineering
 # * validation
 # * feature selection
 # * final model selection
 # 
-# You may select up to 5 models in this step for the purpose of final ensemble. Any classification algorithm covered in class apart from tree-based models can be tested here.
+# We limit ourselves to linear models for now.
 
-# ### Logistic Regression - some tuning done
+# ### Logistic Regression - Best score: 0.7608
 
-# In[17]:
+# In[102]:
 
 pipe = Pipeline([
     ("variance", VarianceThreshold()),
@@ -319,20 +324,20 @@ param_grid = {
 grid_search_metrics(pipe, param_grid)
 
 
-# # Step3 - ModelSet2 [35 points]
+# # Step 3 - Model Set 2
 # 
-# In this step, we expect you to perform the following steps relevant to the models you choose for set2:
 # 
-# * feature engineering
+# In this step, we perform the following steps relevant to exploring our initial options for modeling:
+# 
 # * validation
 # * feature selection
 # * final model selection
 # 
-# You may select up to 5 models in this step for the purpose of final ensemble. We encourage you to try decition tree, random forest and gradient boosted tree methods here and pick the one which you think works best.
+# We explore tree-based methods in this model set.
 
-# ### Random Forest Classifier
+# ### Random Forest Classifier - Best score: 0.7828
 
-# In[18]:
+# In[103]:
 
 pipe = Pipeline([
     ("variance", VarianceThreshold()),
@@ -358,9 +363,9 @@ param_grid = {
 grid_search_metrics(pipe, param_grid)
 
 
-# ### Gradient Boosting Classifier 
+# ### Gradient Boosting Classifier - Best score: 0.7846
 
-# In[19]:
+# In[104]:
 
 pipe = Pipeline([
     ("variance", VarianceThreshold()),
@@ -387,9 +392,9 @@ param_grid = {
 grid_search_metrics(pipe, param_grid)
 
 
-# ### Multi-Layer Perceptron Classifier
+# ### Multi-Layer Perceptron Classifier - Best score: 0.7873
 
-# In[20]:
+# In[107]:
 
 pipe = Pipeline([
     ("variance", VarianceThreshold()),
@@ -411,11 +416,25 @@ param_grid = {
 grid_search_metrics(pipe, param_grid)
 
 
-# # Step4 - Ensemble [20 points + 10 Bonus points]
+# # Step 4 - Ensemble
 # 
-# In this step, we expect you to use the models created before and create new predictions. You should definitely try poor man's stacking but we encourage you to think of different ensemble techniques as well. We will judge your creativity and improvement in model performance using ensemble models and you can potentially earn 10 bonus points here.
+# In this step, we ensemble the tuned models from the previous steps:
+# - LogisticRegression
+# - RandomForest
+# - GradientBoosting
+# - MultiLayerPerceptron
+# 
+# Our final choice for this section, after multiple runs with different pipeline parameters, achieved a test score of:
+# 
+# ### 0.7898
+# 
+# This is an improvement of about
+# 
+# ### 0.002
+# 
+# over our individual tuned models on their own. We will later explore stacking with this ensemble model to make further improvements. 
 
-# In[21]:
+# In[131]:
 
 # svc = LinearSVC(C=0.5)
 # clf1 = CalibratedClassifierCV(svc, method='sigmoid')
@@ -455,7 +474,7 @@ eclf1 = VotingClassifier(voting='soft', estimators=[
 ])
 
 
-# In[22]:
+# In[132]:
 
 pipe = Pipeline([
     ("variance", VarianceThreshold()),
@@ -467,7 +486,7 @@ pipe = Pipeline([
 ])
 
 
-# In[23]:
+# In[133]:
 
 param_grid = {
     'selection_1__k': [70],
@@ -479,8 +498,20 @@ grid_search_metrics(pipe, param_grid)
 
 
 # # Stacking
+# 
+# Here we explore the use of [stacking](https://en.wikipedia.org/wiki/Ensemble_learning#Stacking) to improve our test score. 
+# 
+# We apply a Logistic Regression Classifier on top of the predicted probabilities from the previous Voting Classifier ensemble to achieve an AUC_ROC score of:
+# 
+# ### 0.7930
+# 
+# Which is an improvement of 
+# 
+# ### 0.0032
+# 
+# over the previous ensemble alone.
 
-# In[24]:
+# In[111]:
 
 pipe = Pipeline([
     ("variance", VarianceThreshold()),
@@ -492,7 +523,7 @@ pipe = Pipeline([
 ])
 
 
-# In[35]:
+# In[112]:
 
 from sklearn.preprocessing import FunctionTransformer
 
@@ -507,22 +538,20 @@ stacking.fit(x_train, y_train)
 train_score = stacking.score(x_train, y_train)
 test_score = stacking.score(x_test, y_test)
 test_preds = stacking.predict_proba(x_test)
+print(train_score, test_score)
 
 
-# In[36]:
+# In[113]:
 
-final_score = roc_auc_score(y_test, test_preds[:,1])
-print(final_score)
-
-
-# In[37]:
-
+final_score = aoc_auc_score(y_test, test_preds[:,1])
 assert final_score > 0.79
 
 
-# # Holdout Predictions
+# # Holdout Predictions with best model
+# 
+# Finally we make predictions on the holdout set with our best stacked ensemble for submission to the Kaggle competition. 
 
-# In[38]:
+# In[115]:
 
 pipe = Pipeline([
     ("variance", VarianceThreshold()),
@@ -549,12 +578,12 @@ test_preds = stacking.predict_proba(x_test)
 print(train_score, test_score)
 
 
-# In[39]:
+# In[116]:
 
 preds = stacking.fit(data_dummies, subscribed).predict_proba(holdout_dummies)
 
 
-# In[40]:
+# In[117]:
 
 preds_subscribed = pd.DataFrame(preds[:,1], columns=['subscribed'])
 submission = pd.concat([holdout_ids, preds_subscribed], axis=1)
