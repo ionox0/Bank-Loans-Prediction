@@ -1,17 +1,17 @@
 
 # coding: utf-8
 
-# # Loans Prediction - Predicting successful Loan Subscriptions
+# # Loans Prediction - Predicting Successful Loan Subscriptions
 # 
 # ### Ian Johnson and Daniel First
 # 
-# A banking institution ran a direct marketing campaign based on phone calls. Often, more than one contact to the same client was required, in order to assess if the product (bank term deposit) would be subscribed or not. Your task is to predict whether someone will subscribe to the term deposit or not based on the given information.
+# A banking institution ran a direct marketing campaign based on phone calls. Often, more than one contact to the same client was required, in order to assess if the product (bank term deposit) would be **subscribed** or **not**. Your task is to predict whether someone will subscribe to the term deposit or not based on the given information.
 
 # # Step 0 - Import Libraries, Load Data
 # 
 # This is the basic step where you can load the data and create train and test sets for internal validation as per your convinience.
 
-# In[1]:
+# In[20]:
 
 import logging
 import numpy as np
@@ -29,12 +29,12 @@ from sklearn.model_selection import cross_val_score, GridSearchCV
 from sklearn.feature_selection import SelectFromModel, SelectKBest, SelectPercentile, VarianceThreshold
 from sklearn.feature_selection import RFE, f_classif, mutual_info_classif
 
-# Models
+# Models - Linear
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC, SVC
 from sklearn.linear_model import LogisticRegression, RidgeClassifier, LassoCV, RidgeCV, ElasticNet, ElasticNetCV
 from sklearn.discriminant_analysis import  LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
-
+# Models - Non-Linear
 from xgboost import XGBClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, VotingClassifier
@@ -47,10 +47,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 
 
-# In[2]:
+# In[21]:
 
 # Display progress logs on stdout
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+import warnings; warnings.simplefilter('ignore')
 pd.options.display.max_columns = 999
 delim = '\n\n' + '*'*30
 
@@ -72,7 +73,7 @@ data = data.drop(["subscribed", "duration", "credit_default"], axis=1)
 holdout = holdout.drop(["ID", "duration", "credit_default"], axis=1)
 
 
-# In[3]:
+# In[22]:
 
 data.head()
 
@@ -81,7 +82,7 @@ data.head()
 # 
 # In this step, we expect you to look into the data and try to understand it before modeling. This understanding may lead to some basic data preparation steps which are common across the two model sets required.
 
-# In[88]:
+# In[23]:
 
 categorical_df=data.select_dtypes(include=['object'])
 categorical_variables=categorical_df.columns
@@ -98,18 +99,18 @@ categ_and_target = pd.concat(frames,axis=1)
 
 # From this plot, we can observe some of the variables that may provide helpful splits between the successful and unsuccessful subscription attempts:
 # 
-# - `cons_price_idx` - Consumer price index - monthly indicator (numeric)  
+# - **cons_price_idx** - Consumer price index - monthly indicator (numeric)  
 # 
-# - `age` - Age of the customer
+# - **age** - Age of the customer
 # 
-# - `campaign` - The number of contacts performed during this campaign and for this client (numeric, includes last contact)
+# - **campaign** - The number of contacts performed during this campaign and for this client (numeric, includes last contact)
 # 
-# - `duration` - This feature represents the duration of the current call for attempting to get the customer to subscribe. Because it proved to be such a good predictor of the final success rate, but it is not a variable that can be used to predict for future potential customers, we removed this feature in order to create a more useful and generalizable model. 
+# - **duration** - This feature represents the duration of the current call for attempting to get the customer to subscribe. Because it proved to be such a good predictor of the final success rate, but it is not a variable that can be used to predict for future potential customers, we removed this feature in order to create a more useful and generalizable model. 
 
 # ## Creating new features
 # #### Boolean variable indicating whether participant falls into subcategories that exhibit higher proportion of successful loan subscriptions:
 
-# In[89]:
+# In[24]:
 
 print("Jobs:")
 dict_percentage_job={}
@@ -143,7 +144,7 @@ for each_edu in edu_categories:
 print(dict_percentage_edu)
 
 
-# In[90]:
+# In[25]:
 
 def month_function(month):
     if month=="dec" or month=="mar" or month=="oct" or month=="sep":
@@ -165,13 +166,13 @@ def education_function(y):
         return 1
 
 
-# In[91]:
+# In[26]:
 
 def get_counts(x,dict):
     return dict[x]
 
 
-# In[92]:
+# In[27]:
 
 def new_feats(data):
     data_withbool=data
@@ -202,7 +203,7 @@ def new_feats(data):
 
 # #### Features consisting of the logs of each of the continuous columns from the datasest:
 
-# In[93]:
+# In[28]:
 
 # Log features
 def log_feats(data):
@@ -214,7 +215,7 @@ def log_feats(data):
 
 # #### Features consisting of the mean of each of the continuous columns, for each subcategory of the categorical columns:
 
-# In[94]:
+# In[29]:
 
 def fit_mean_cont_per_cat_group(df):
     categorical_cols = df.select_dtypes(include=['object']).columns
@@ -253,7 +254,7 @@ def transform_mean_cont_per_cat_group(df, means):
 
 # ### Apply new feature creation functions to the data and holdout data sets
 
-# In[95]:
+# In[30]:
 
 print(data.shape)
 print(holdout.shape)
@@ -264,7 +265,7 @@ print(data_new_feats_1.shape)
 print(holdout_new_feats_1.shape)
 
 
-# In[96]:
+# In[31]:
 
 data_new_feats_2 = new_feats(data)
 holdout_new_feats_2 = new_feats(holdout)
@@ -272,7 +273,7 @@ print(data_new_feats_2.shape)
 print(holdout_new_feats_2.shape)
 
 
-# In[97]:
+# In[32]:
 
 data_new_feats_3 = log_feats(data_new_feats_2)
 holdout_new_feats_3 = log_feats(holdout_new_feats_2)
@@ -280,7 +281,7 @@ print(data_new_feats_3.shape)
 print(holdout_new_feats_3.shape)
 
 
-# In[98]:
+# In[33]:
 
 data_dummies = pd.get_dummies(data_new_feats_3)
 holdout_dummies = pd.get_dummies(holdout_new_feats_3)
@@ -290,7 +291,7 @@ print(holdout_dummies.shape)
 
 # ### Train test split of our training data:
 
-# In[99]:
+# In[34]:
 
 x_train, x_test, y_train, y_test = train_test_split(data_dummies, subscribed, random_state=42)# stratify=subscribed, random_state=42)
 x_train.shape
@@ -298,7 +299,7 @@ x_train.shape
 
 # ### Utility grid search function to assess subsequent models:
 
-# In[100]:
+# In[35]:
 
 def grid_search_metrics(pipe, param_grid):
     grid = GridSearchCV(pipe, param_grid=param_grid, scoring='roc_auc')
@@ -314,11 +315,27 @@ def grid_search_metrics(pipe, param_grid):
 # 
 # In this step, we perform the following steps relevant to exploring our initial options for modeling:
 # 
-# * validation
-# * feature selection
-# * final model selection
+# * **validation**
+# * **feature selection**
+# * **final model selection**
 # 
 # We limit ourselves to linear models for now.
+# 
+# You will notice that we chose a pipline with the following steps (formed from previous experiementation not shown in this notebook):
+# 
+# - **Variance Thresholding:** To remove constant features across the dataset (discovered from multiple warnings during classifier training)
+# 
+# - **Select K Best:** Our initial regularization step, to prevent slowdown, in addition to too many features coming from Polynomial Feature creation
+# 
+# - **Polynomial Features:** To explore feature interactions + higher-order relationships between our variables and the `subscribed` column
+# 
+# - **Scaling:** To give features equal importance in non-tree based classification methods
+#     - Logistic regression, SVMs, perceptrons, neural networks will have their weights updated in inconsistent amounts across the features if the scales of the features are not identical
+#     - Linear discriminant analysis will preferentially weight the features whose scale is larger, as it attempts to compute the features that form the direction of maximal variance
+#     
+# - **Second Select K Best:** After feature interactions, and scaling, we would like to re-select the new top features as another form of regularization
+# 
+# - **Model:** The classification model (either a single model, Voting Classifier, or Stacked Ensemble)
 
 # ### Logistic Regression - Best score: 0.7608
 
@@ -340,6 +357,86 @@ param_grid = {
 grid_search_metrics(pipe, param_grid)
 
 
+# ### Linear Support Vector Machine - Best score: 0.7601
+
+# In[37]:
+
+pipe = Pipeline([
+    ("variance", VarianceThreshold()),
+    ("selection_1", SelectKBest(score_func=f_classif)),
+    ("polys", PolynomialFeatures()),
+    ("scaling", MinMaxScaler()),
+    ("selection_2", SelectKBest(score_func=f_classif)),
+    ("model", LinearSVC())
+])
+
+param_grid = {
+    'model__C': [0.3, 0.1, 0.05], #[1, .5, .1, .001]
+}
+
+grid_search_metrics(pipe, param_grid)
+
+
+# ### Ridge Regression - Best score: 0.7601
+
+# In[38]:
+
+pipe = Pipeline([
+    ("variance", VarianceThreshold()),
+    ("selection_1", SelectKBest(score_func=f_classif)),
+    ("polys", PolynomialFeatures()),
+    ("scaling", MinMaxScaler()),
+    ("selection_2", SelectKBest(score_func=f_classif)),
+    ("model", RidgeClassifier())
+])
+
+param_grid = {
+    'model__alpha': [1, 5, 10, 100]
+}
+
+grid_search_metrics(pipe, param_grid)
+
+
+# ### Linear Discriminant Analysis  - Best score: 0.7601
+
+# In[39]:
+
+pipe = Pipeline([
+    ("variance", VarianceThreshold()),
+    ("selection_1", SelectKBest(score_func=f_classif)),
+    ("polys", PolynomialFeatures()),
+    ("scaling", MinMaxScaler()),
+    ("selection_2", SelectKBest(score_func=f_classif)),
+    ("model", LinearDiscriminantAnalysis())
+])
+
+param_grid = {
+    'model__store_covariance': [False]
+}
+
+grid_search_metrics(pipe, param_grid)
+
+
+# ### Gaussian Naive Bayes - Best score: 0.7558
+
+# In[40]:
+
+pipe = Pipeline([
+    ("variance", VarianceThreshold()),
+    ("selection_1", SelectKBest(score_func=f_classif)),
+    ("polys", PolynomialFeatures()),
+    ("scaling", MinMaxScaler()),
+    ("selection_2", SelectKBest(score_func=f_classif)),
+    ("model", GaussianNB())
+])
+
+param_grid = {
+    'model__priors': [[0.88, 0.12]]
+}
+
+grid_search_metrics(pipe, param_grid)
+
+
 # # Step 3 - Model Set 2
 # 
 # 
@@ -349,7 +446,7 @@ grid_search_metrics(pipe, param_grid)
 # * feature selection
 # * final model selection
 # 
-# We explore tree-based methods in this model set.
+# We explore non-linear methods in this model set.
 
 # ### Random Forest Classifier - Best score: 0.7828
 
@@ -408,6 +505,58 @@ param_grid = {
 grid_search_metrics(pipe, param_grid)
 
 
+# ### XGBoost - Best score: 0.7801
+
+# In[41]:
+
+pipe = Pipeline([
+    ("variance", VarianceThreshold()),
+    ("selection_1", SelectKBest(score_func=f_classif)),
+    ("polys", PolynomialFeatures()),
+    ("scaling", StandardScaler()),
+    ("selection_2", SelectKBest(score_func=f_classif)),
+    ("model", XGBClassifier())
+])
+
+param_grid = {
+    'selection_1__k': [50],
+    'selection_2__k': [700],
+    
+#     'model__num_boost_round': [100], #[100, 250, 500],
+#     'model__eta': [0.05], #[0.05, 0.1, 0.3],
+    'model__max_depth': [5], #, 6, 9],
+    'model__subsample': [0.9], #, 1.0],
+    'model__colsample_bytree': [1.0] #, [0.9, 1.0],
+}
+
+grid_search_metrics(pipe, param_grid)
+
+
+# ### Adaboost
+
+# In[42]:
+
+pipe = Pipeline([
+    ("variance", VarianceThreshold()),
+    ("selection_1", SelectKBest(score_func=f_classif)),
+    ("polys", PolynomialFeatures()),
+    ("scaling", StandardScaler()),
+    ("selection_2", SelectKBest(score_func=f_classif)),
+    ("model", AdaBoostClassifier())
+])
+
+param_grid = {
+    'selection_1__k': [50],
+    'selection_2__k': [700],
+    
+    'model__base_estimator': [DecisionTreeClassifier()],
+    'model__n_estimators': [100, 110], #[50, 100],
+    'model__learning_rate': [1.0, 1.1], #[0.5, 1.0]
+}
+
+grid_search_metrics(pipe, param_grid)
+
+
 # ### Multi-Layer Perceptron Classifier - Best score: 0.7873
 
 # In[107]:
@@ -434,7 +583,7 @@ grid_search_metrics(pipe, param_grid)
 
 # # Step 4 - Ensemble
 # 
-# In this step, we ensemble the tuned models from the previous steps:
+# In this step, we ensemble the best of our tuned models from the previous steps:
 # - LogisticRegression
 # - RandomForest
 # - GradientBoosting
@@ -565,7 +714,11 @@ assert final_score > 0.79
 
 # # Holdout Predictions with best model
 # 
-# Finally we make predictions on the holdout set with our best stacked ensemble for submission to the Kaggle competition. 
+# Finally we make predictions on the holdout set with our best stacked ensemble for submission to the Kaggle competition. Our final score on the private leaderboard was:
+# 
+# ### 0.7881
+# 
+# After a total of **14** submissions.
 
 # In[115]:
 
@@ -605,6 +758,12 @@ preds_subscribed = pd.DataFrame(preds[:,1], columns=['subscribed'])
 submission = pd.concat([holdout_ids, preds_subscribed], axis=1)
 submission.to_csv(path_or_buf='preds.csv', sep=',', index=False)
 
+
+# # Results + Conclusion
+
+# Over the course of the competition, we were able to climb to our best position of **7th** place on the public leaderboard with the final ensemble shown above. These were encouraging results, however our position dropped significantly when the private scores were opened, and our final position was **28th** out of **66** teams.
+# 
+# This reason for this drop is the ridiculous amount of overfitting that comes from combining Gradient Boosting, Random Forest, Logistic Regression and a Multilayer Perceptron. In the future, we will still be tempted to try even more crazy combinations of classifiers, but we will most likely stick to more simple models with less parameters and more regularization for our final holdout predictions.
 
 # In[ ]:
 
